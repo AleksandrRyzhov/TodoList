@@ -17,6 +17,11 @@ class App extends React.Component {
         filterValue: "All"
     }
 
+    addTask = (newText) => {
+        let newTask = {title: newText, isDone: true, priority: "high"};
+        let newTasks = [...this.state.tasks, newTask];
+        this.setState({tasks: newTasks})
+    };
 
     changeFilter = (newFilterValue) => {
         this.setState({
@@ -24,40 +29,36 @@ class App extends React.Component {
         })
     }
 
-    onAddTask = (newText)=>{
-        let newTask = {title: newText, isDone: true, priority: "high"};
-        let newTasks = [...this.state.tasks, newTask];
-
-        this.setState({tasks: newTasks})
-    }
-
     changeStatus = (task, isDone)=> {
-        let newTasks = this.state.tasks.map(t =>  {
+        let newTasks = this.state.tasks.map(t => {
             if (t !== task) {
                 return t
             }
             else {
                 return {...t, isDone: isDone}
-            }
-        })
-        this.setState({tasks: newTasks})
-    }
+            }}
+        )
+    this.setState({
+        tasks: newTasks
+    })
+    };
 
     render = () => {
 
         return (
             <div className="App">
                 <div className="todoList">
-                    <TodoListHeader  onAddTask={this.onAddTask}/>
+                    <TodoListHeader addTask={this.addTask} />
+
                     <TodoListTasks changeStatus={this.changeStatus} tasks={this.state.tasks.filter(t => {
-                        if (this.state.filterValue === "All") {
+                        if (this.state.filterValue === 'All') {
                             return true
                         }
-                        if (this.state.filterValue === "Active") {
-                            return t.isDone === false
-                        }
-                        if (this.state.filterValue === "Completed") {
+                        if (this.state.filterValue === 'Completed') {
                             return t.isDone === true
+                        }
+                        if (this.state.filterValue === 'Active') {
+                            return t.isDone === false
                         }
                     })}/>
                     <TodoListFooter changeFilter={this.changeFilter} filterValue={this.state.filterValue}/>
