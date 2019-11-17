@@ -4,110 +4,181 @@ import TodoListTasks from "./TodoListTasks";
 import TodoListFooter from "./TodoListFooter";
 import TodoListTitle from "./TodoListTitle";
 import AddNewItemForm from "./AddNewItemForm";
+import {connect} from "react-redux";
 
 class TodoList extends React.Component {
+
     constructor(props) {
-        super(props)
+        super(props);
+        this.newTasksTitileRef = React.createRef();
+
     }
 
     componentDidMount() {
         this.restoreState();
     }
 
+    saveState = () => {
+        // переводим объект в строку
+        let stateAsString = JSON.stringify(this.state);
+        // сохраняем нашу строку в localStorage под ключом "our-state"
+        localStorage.setItem("our-state-" + this.props.id, stateAsString);
+    }
+
+    restoreState = () => {
+        // объявляем наш стейт стартовый
+        let state = this.state;
+        // считываем сохранённую ранее строку из localStorage
+        let stateAsString = localStorage.getItem("our-state-" + this.props.id);
+        // а вдруг ещё не было ни одного сохранения?? тогда будет null.
+        // если не null, тогда превращаем строку в объект
+        if (stateAsString != null) {
+            state = JSON.parse(stateAsString);
+        }
+        // устанавливаем стейт (либо пустой, либо восстановленный) в стейт
+        this.setState(state, () => {
+            this.state.tasks.forEach(t => {
+                if (t.id >= this.nextTaskId) {
+                    this.nextTaskId = t.id + 1;
+                }
+            })
+        });
+    }
 
     nextTaskId = 0;
+
     state = {
         tasks: [],
         filterValue: "All"
-    }
-
-    saveState = () => {
-        let stateAsString = JSON.stringify(this.state);
-        localStorage.setItem("our-state" + this.props.id, stateAsString);
-    }
-
-    restoreState = ()=> {
-        debugger
-        let state = {
-            tasks: [],
-            filterValue: "All"
-        };
-        let stateAsString = localStorage.getItem("our-state" + this.props.id);
-        if (stateAsString != null) {
-          state = JSON.parse(stateAsString)
-        }
-        this.setState(state, ()=> {
-            this.state.tasks.forEach( t => {
-                if (t.id >= this.nextTaskId) {
-                    this.nextTaskId = t.id + 1
-
-                }
-            })
-        })
-    }
-
-    addItem = (newText) => {
-        let newTask = {id: this.nextTaskId, title: newText, isDone: true, priority: "high"};
-        this.nextTaskId++
-        let newTasks = [...this.state.tasks, newTask];
-        this.setState({tasks: newTasks}, () => {this.saveState();})
-        this.saveState();
     };
+
+    addTask = (newText) => {
+        let newTask = {
+            id: this.nextTaskId,
+            title: newText,
+            isDone: false,
+            priority: "low"
+        };
+        // инкрементим (увеличим) id следующей таски, чтобы при следюущем добавлении, он был на 1 больше
+        this.nextTaskId++;
+
+        this.props.addTask(newTask, this.props.id)
+        // let newTasks = [...this.state.tasks, newTask];
+        // this.setState( {
+        //     tasks: newTasks
+        // }, () => { this.saveState(); });
+
+    }
 
     changeFilter = (newFilterValue) => {
-        this.setState({
+        this.setState( {
             filterValue: newFilterValue
-        })
+        }, () => { this.saveState(); });
     }
 
-    changeTask = (taskId, obj)=> {
-        let newTasks = this.state.tasks.map(t => {
-            if (t.id !== taskId) {
-                return t
-            }
-            else {
-                return {...t, ...obj}
-            }}
-        )
-        this.setState({
-            tasks: newTasks
-        })
-    };
-
-    changeStatus = (taskId, isDone)=> {
-        this.changeTask(taskId, {isDone: isDone})}
-
-
-    changeTitle = (taskId, title)=> {
-        this.changeTask(taskId, {title: title})}
+    changeTask = (taskId, obj) => {
+        this.props.changeTask(taskId, obj, this.props.id)
+        // let newTasks = this.state.tasks.map(t => {
+        //     if (t.id != taskId) {
+        //         return t;
+        //     }
+        //     else {
+        //         return {...t, ...obj};
+        //     }
+        // });
+        //
+        // this.setState({
+        //     tasks: newTasks
+        // }, () => { this.saveState(); });
+    }
+    changeStatus = (taskId, isDone) => {
+        this.changeTask(taskId, {isDone: isDone});
+    }
+    changeTitle = (taskId, title) => {
+        this.changeTask(taskId, {title: title});
+    }
+    deleteTodolist = ()=> {
+        this.props.delTodolist(this.props.id)
+    }
+    deleteTask = (taskId)=> {
+        debugger
+        this.props.delTask(taskId, this.props.id)
+    }
 
     render = () => {
-debugger
+
         return (
-            <div className="App">
+
                 <div className="todoList">
+                    <div className="todoList-header">
+                            <TodoListTitle title={this.props.title} deleteTodolist={this.deleteTodolist}/>
+                            <AddNewItemForm addItem={this.addTask} />
+                    </div>
 
-                    <TodoListTitle  title={this.props.title} />
-                    <AddNewItemForm addItem={this.addItem}  />
-
-                    <TodoListTasks changeTitle={this.changeTitle} changeStatus={this.changeStatus} tasks={this.state.tasks.filter(t => {
-                        if (this.state.filterValue === 'All') {
-                            return true
+                    <TodoListTasks changeStatus={this.changeStatus }
+                                   changeTitle={this.changeTitle }
+                                   deleteTask={this.deleteTask}
+                                   tasks={this.props.tasks.filter(t => {
+                        if (this.state.filterValue === "All") {
+                            return true;
                         }
-                        if (this.state.filterValue === 'Completed') {
-                            return t.isDone === true
+                        if (this.state.filterValue === "Active") {
+                            return t.isDone === false;
                         }
-                        if (this.state.filterValue === 'Active') {
-                            return t.isDone === false
+                        if (this.state.filterValue === "Completed") {
+                            return t.isDone === true;
                         }
                     })}/>
-                    <TodoListFooter changeFilter={this.changeFilter} filterValue={this.state.filterValue}/>
-
+                    <TodoListFooter changeFilter={this.changeFilter} filterValue={this.state.filterValue} />
                 </div>
-            </div>
+
         );
     }
 }
 
-export default TodoList;
+const mapDispatchToProps = (dispatch) => {
+    return {
+        addTask: (newTask, todolistId) => {
+            const action = {
+                type: "ADD-TASK",
+                newTask: newTask,
+                todolistId: todolistId
+            };
+
+            dispatch(action)
+        },
+        changeTask: (taskId, obj, todolistId) => {
+            const action = {
+                type: "CHANGE-TASK",
+                taskId: taskId,
+                obj: obj,
+                todolistId: todolistId
+            };
+
+            dispatch(action)
+        },
+        delTodolist: (todolistId) => {
+            const action = {
+                type: "DEL-TODOLIST",
+                todolistId: todolistId
+            };
+
+            dispatch(action)
+        },
+        delTask: (taskId, todolistId) => {
+            const action = {
+                type: "DEL-TASK",
+                taskId: taskId,
+                todolistId: todolistId
+
+            };
+
+            dispatch(action)
+        }
+    }
+}
+
+const ConnectedTodoList = connect(null, mapDispatchToProps)(TodoList);
+export default ConnectedTodoList;
+
 
