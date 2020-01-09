@@ -3,50 +3,52 @@ import './App.css';
 import TodoList from "./TodoList";
 import AddNewItemForm from "./AddNewItemForm";
 import {connect} from "react-redux";
-import {addTodolistAC, setTodolistAC} from "./reducer";
+import {ADD_TODOLIST, addTodolistAC, setTodolistsAC} from "./reducer";
 import axios from "axios";
+import {api} from "./api";
 
 class App extends React.Component {
 
     nextTodoListId = 0;
 
-
-    componentDidMount() {
-        this.restoreState()
+    state = {
+        todolists: []
     }
-
-    restoreState = () => {
-        axios.get("https://social-network.samuraijs.com/api/1.0/todo-lists", {withCredentials: true})
-            .then(res => {
-               this.props.setTodolist(res.data)
-            });
-    }
-
 
     addTodoList = (title) => {
-        axios.post("https://social-network.samuraijs.com/api/1.0/todo-lists",
-            {title: title},
-            {withCredentials: true,
-            headers: {"API-KEY": "a5a28d6b-5efa-4ce5-a3eb-588fbeaafdfd"}
-            })
-            .then(res => {
-                let todolist = res.data.data.item;
-                this.props.addTodolist(todolist)
+        api.createTodolist(title).then(res => {
+                let todolist = res.data.data.item;                           // todolist, который создался на серваке и вернулся нам
+                this.props.addTodolist(todolist);
             });
-           }
+    }
+
+
+
+    componentDidMount() {
+        this.restoreState();
+    }
+
+
+
+
+    restoreState = () => {
+        api.getTodolists()
+    .then(res => {
+            this.props.setTodolists(res.data);
+        });
+    }
 
 
 
     render = () => {
-        debugger
         const todolists = this.props
             .todolists
-            .map(tl => <TodoList id={tl.id} title={tl.title} tasks={tl.tasks}/>)
+            .map(tl => <TodoList key={tl.id} id={tl.id} title={tl.title} tasks={tl.tasks}/>)
 
         return (
             <>
                 <div>
-                   <AddNewItemForm addItem={this.addTodoList}/>
+                    <AddNewItemForm addItem={this.addTodoList}/>
                 </div>
                 <div className="App">
                     {todolists}
@@ -56,8 +58,6 @@ class App extends React.Component {
     }
 }
 
-
-
 const mapStateToProps = (state) => {
     return {
         todolists: state.todolists
@@ -66,14 +66,12 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) => {
     return {
-        addTodolist: (todolist) => {
-            const action = addTodolistAC(todolist)
-
+        setTodolists: (todolists) => {
+            const action = setTodolistsAC(todolists);
             dispatch(action)
         },
-        setTodolist: (todolists) => {
-            const action = setTodolistAC(todolists)
-
+        addTodolist: (newTodolist) => {
+            const action = addTodolistAC(newTodolist);
             dispatch(action)
         }
     }
@@ -81,5 +79,4 @@ const mapDispatchToProps = (dispatch) => {
 
 const ConnectedApp = connect(mapStateToProps, mapDispatchToProps)(App);
 export default ConnectedApp;
-
 
